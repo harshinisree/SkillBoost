@@ -1,6 +1,39 @@
+from sqlalchemy import func
+
 from ..errors import AppError
 from ..extensions import db
 from ..models import Course
+
+MAX_PER_PAGE = 100
+
+# Each sort also orders by id, so rows with the same title or timestamp
+# keep a fixed order and never jump between pages.
+SORTS = {
+    "title": (Course.title.asc(), Course.id.asc()),
+    "-title": (Course.title.desc(), Course.id.desc()),
+    "created_at": (Course.created_at.asc(), Course.id.asc()),
+    "-created_at": (Course.created_at.desc(), Course.id.desc()),
+}
+
+
+def list_courses(page=1, per_page=20, q="", sort="-created_at"):
+    """One page of courses, optionally filtered by title (US5).
+
+    Returns (items, total, page, per_page). per_page is capped at MAX_PER_PAGE.
+    """
+    per_page = min(per_page, MAX_PER_PAGE)
+    query = db.select(Course)
+    if q:
+        # autoescape makes % and _ in the search text match literally.
+        query = query.where(func.lower(Course.title).contains(q.lower(), autoescape=True))
+
+    total = db.session.execute(
+        db.select(func.count()).select_from(query.subquery())
+    ).scalar_one()
+    items = db.session.execute(
+        query.order_by(*SORTS[sort]).limit(per_page).offset((page - 1) * per_page)
+    ).scalars().all()
+    return items, total, page, per_page
 
 
 def create(staff, title, description, capacity):

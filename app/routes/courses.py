@@ -1,10 +1,27 @@
 from flask import Blueprint, g, jsonify, request
 
-from ..auth import role_required
-from ..schemas import CourseSchema, validate_body
+from ..auth import role_required, token_required
+from ..schemas import CourseListQuery, CourseSchema, validate_body
 from ..services import course_service
 
 bp = Blueprint("courses", __name__, url_prefix="/courses")
+
+
+@bp.get("")
+@token_required
+def list_courses():
+    params = validate_body(CourseListQuery, request.args.to_dict())
+    items, total, page, per_page = course_service.list_courses(
+        params.page, params.per_page, params.q, params.sort
+    )
+    return jsonify(
+        {
+            "items": [course.to_dict() for course in items],
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+        }
+    ), 200
 
 
 @bp.post("")
