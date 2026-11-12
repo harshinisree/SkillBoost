@@ -69,3 +69,12 @@ class CourseSchema(BaseModel):
     title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)]
     description: Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)] = ""
     capacity: Annotated[int, Field(strict=True, ge=1)]
+
+
+class CourseListQuery(BaseModel):
+    """Query string of GET /courses. Values arrive as text and are converted."""
+
+    page: int = Field(default=1, ge=1)
+    per_page: int = Field(default=20, ge=1)
+    q: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)] = ""
+    sort: Literal["title", "-title", "created_at", "-created_at"] = "-created_at"
