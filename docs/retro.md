@@ -9,3 +9,8 @@
    - **Worked:** all 4 issues delivered with tests first; 71 tests pass on MySQL; real demo of the full approval flow.
    - **Did not work:** a test-setup bug only showed on MySQL (stale data from transaction isolation); one branch was made from an out-of-date main.
    - **Change:** always Fetch and Pull main before creating a branch; put Closes #N in the PR description, not the title.
+
+      ## Sprint 2 (goal: courses and enrollment)
+   - **Worked:** US4 to US7 delivered; 142 tests; tests now guard against N+1 queries and prove the database's own safety nets (UNIQUE, foreign key, CHECK).
+   - **Did not work:** one branch was made before the previous story was merged; a stale server returned 405; the test run now takes over 2 minutes.
+   - **Change:** check the History tab before every branch; run the server with --debug; make tests faster with a cheaper bcrypt setting (T4-8).
