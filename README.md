@@ -15,3 +15,5 @@
    | PUT | `/courses/<id>` | Staff, owner only | 200 | 400, 401, 403, 404 |
    | DELETE | `/courses/<id>` | Staff, owner only | 204 | 401, 403, 404 |
    | GET | /courses | Any approved user | 200, paginated | 400, 401 |
+   | POST | /enrollments | Student | 201 | 400, 401, 403, 404, 409 |
+   | DELETE | `/enrollments/<course_id>` | Student | 204 | 401, 403, 404 |
