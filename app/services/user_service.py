@@ -52,6 +52,23 @@ def create_admin(name, email, password):
     return _create_user(name, email, password, role="admin", status="approved")
 
 
+def list_pending():
+    """All accounts waiting for approval, oldest first (US2)."""
+    query = db.select(User).filter_by(status="pending").order_by(User.created_at, User.id)
+    return db.session.execute(query).scalars().all()
+
+
+def approve(user_id):
+    """Approve an account (US2). Approving an approved account changes nothing."""
+    user = db.session.get(User, user_id)
+    if user is None:
+        raise AppError("NOT_FOUND", "User not found.", 404)
+    if user.status != "approved":
+        user.status = "approved"
+        db.session.commit()
+    return user
+
+
 def _create_user(name, email, password, role, status):
     """Save a new user. Raises AppError(EMAIL_TAKEN, 409) if the email is in use."""
     email = email.lower()
