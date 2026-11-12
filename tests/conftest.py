@@ -1,3 +1,4 @@
+import itertools
 import os
 
 import pytest
@@ -7,6 +8,7 @@ from flask import Blueprint, g, jsonify
 from app import create_app
 from app.auth import role_required, token_required
 from app.extensions import db
+from app.services import user_service
 
 load_dotenv()
 
@@ -72,3 +74,28 @@ def runner(app):
     """CLI test runner. After each test, every table is emptied."""
     yield app.test_cli_runner()
     _empty_all_tables(app)
+
+
+@pytest.fixture()
+def make_user(app, client):
+    """Create an approved user and log them in.
+
+    Usage:  user_id, headers = make_user("staff")
+    headers is ready to pass to client.get/post/put/delete.
+    """
+    counter = itertools.count(1)
+
+    def _make(role="student", email=None, password="StrongPass1"):
+        email = email or f"{role}{next(counter)}@example.com"
+        with app.app_context():
+            if role == "admin":
+                user = user_service.create_admin("Test Admin", email, password)
+            else:
+                user = user_service.register("Test User", email, password, role)
+                user.status = "approved"
+                db.session.commit()
+            user_id = user.id
+        response = client.post("/auth/login", json={"email": email, "password": password})
+        return user_id, {"Authorization": "Bearer " + response.get_json()["access_token"]}
+
+    return _make
