@@ -30,3 +30,27 @@ class User(db.Model):
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class Course(db.Model):
+    __tablename__ = "courses"
+    __table_args__ = (
+        db.CheckConstraint("capacity >= 1", name="ck_courses_capacity_positive"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=False, default="")
+    capacity = db.Column(db.Integer, nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "capacity": self.capacity,
+            "staff_id": self.staff_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

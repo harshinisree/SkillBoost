@@ -21,9 +21,11 @@ def create_app(config_overrides=None):
 
     from .routes.admin import bp as admin_bp
     from .routes.auth import bp as auth_bp
+    from .routes.courses import bp as courses_bp
     from .routes.health import bp as health_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(courses_bp)
     return app
