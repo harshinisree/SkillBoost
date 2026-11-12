@@ -1,8 +1,9 @@
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from ..errors import AppError
 from ..extensions import db
-from ..models import Course
+from ..models import Course, Enrollment
 
 MAX_PER_PAGE = 100
 
@@ -55,10 +56,28 @@ def update(staff, course_id, title, description, capacity):
 
 
 def delete(staff, course_id):
-    """Delete a course. Only its owner may do this."""
+    """Delete a course. Only its owner may do this, and only while nobody is enrolled."""
     course = _owned_course(staff, course_id)
+    has_students = db.session.execute(
+        db.select(Enrollment.id).filter_by(course_id=course.id).limit(1)
+    ).first()
+    if has_students:
+        raise _has_enrollments()
     db.session.delete(course)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # A student enrolled between the check and the delete; the foreign key caught it.
+        db.session.rollback()
+        raise _has_enrollments()
+
+
+def _has_enrollments():
+    return AppError(
+        "COURSE_HAS_ENROLLMENTS",
+        "This course has enrolled students and cannot be deleted.",
+        409,
+    )
 
 
 def _owned_course(staff, course_id):

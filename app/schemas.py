@@ -78,3 +78,9 @@ class CourseListQuery(BaseModel):
     per_page: int = Field(default=20, ge=1)
     q: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)] = ""
     sort: Literal["title", "-title", "created_at", "-created_at"] = "-created_at"
+
+
+class EnrollSchema(BaseModel):
+    """Body of POST /enrollments."""
+
+    course_id: Annotated[int, Field(strict=True, ge=1)]

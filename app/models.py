@@ -54,3 +54,23 @@ class Course(db.Model):
             "staff_id": self.staff_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class Enrollment(db.Model):
+    __tablename__ = "enrollments"
+    __table_args__ = (
+        db.UniqueConstraint("student_id", "course_id", name="uq_enrollments_student_course"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey("courses.id"), nullable=False, index=True)
+    enrolled_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "student_id": self.student_id,
+            "course_id": self.course_id,
+            "enrolled_at": self.enrolled_at.isoformat() if self.enrolled_at else None,
+        }
