@@ -23,6 +23,27 @@ def enroll(student, course_id):
     return enrollment
 
 
+def list_for_student(student):
+    """The student's own enrollments with course titles, newest first (US7).
+
+    One joined query, however many enrollments there are.
+    """
+    query = (
+        db.select(Enrollment.course_id, Course.title, Enrollment.enrolled_at)
+        .join(Course, Course.id == Enrollment.course_id)
+        .where(Enrollment.student_id == student.id)
+        .order_by(Enrollment.enrolled_at.desc(), Enrollment.id.desc())
+    )
+    return [
+        {
+            "course_id": row.course_id,
+            "title": row.title,
+            "enrolled_at": row.enrolled_at.isoformat() if row.enrolled_at else None,
+        }
+        for row in db.session.execute(query)
+    ]
+
+
 def drop(student, course_id):
     """Remove the student's own enrollment. 404 if they are not enrolled."""
     enrollment = _find(student, course_id)

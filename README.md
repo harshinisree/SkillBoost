@@ -17,3 +17,4 @@
    | GET | /courses | Any approved user | 200, paginated | 400, 401 |
    | POST | /enrollments | Student | 201 | 400, 401, 403, 404, 409 |
    | DELETE | `/enrollments/<course_id>` | Student | 204 | 401, 403, 404 |
+   | GET | /enrollments/me | Student | 200 | 401, 403 |
