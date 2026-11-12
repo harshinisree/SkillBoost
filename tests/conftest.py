@@ -11,7 +11,11 @@ load_dotenv()
 
 @pytest.fixture(scope="session")
 def app():
-    """App wired to the skillboost_test database; tables created once per run."""
+    """App wired to the skillboost_test database; tables are rebuilt once per run.
+
+    No app context stays open during the tests. Each request then gets its own
+    database session, as in production, so no test sees another test's stale data.
+    """
     app = create_app(
         {
             "TESTING": True,
@@ -19,12 +23,18 @@ def app():
         }
     )
     with app.app_context():
+        db.drop_all()
         db.create_all()
-        yield app
-        db.session.remove()
+    yield app
+    with app.app_context():
         db.drop_all()
 
 
 @pytest.fixture()
 def client(app):
-    return app.test_client()
+    """Test client. After each test, every table is emptied so tests stay independent."""
+    yield app.test_client()
+    with app.app_context():
+        for table in reversed(db.metadata.sorted_tables):
+            db.session.execute(table.delete())
+        db.session.commit()
