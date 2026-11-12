@@ -19,9 +19,11 @@ def create_app(config_overrides=None):
     register_error_handlers(app)
     register_cli(app)
 
+    from .routes.admin import bp as admin_bp
     from .routes.auth import bp as auth_bp
     from .routes.health import bp as health_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
     return app
