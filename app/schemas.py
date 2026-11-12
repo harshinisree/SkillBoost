@@ -8,13 +8,12 @@ BCRYPT_MAX_BYTES = 72
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 
 
-class RegisterSchema(BaseModel):
-    """Validates the body of POST /auth/register. Admin is not an allowed role."""
+class AccountSchema(BaseModel):
+    """Rules shared by every way of creating an account."""
 
     name: Name
     email: EmailStr
     password: str = Field(min_length=8)
-    role: Literal["student", "staff"]
 
     @field_validator("email")
     @classmethod
@@ -27,3 +26,9 @@ class RegisterSchema(BaseModel):
         if len(value.encode("utf-8")) > BCRYPT_MAX_BYTES:
             raise ValueError("password must be at most 72 bytes")
         return value
+
+
+class RegisterSchema(AccountSchema):
+    """Body of POST /auth/register. Admin is not an allowed role."""
+
+    role: Literal["student", "staff"]

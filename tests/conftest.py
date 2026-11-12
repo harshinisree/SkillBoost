@@ -30,11 +30,22 @@ def app():
         db.drop_all()
 
 
-@pytest.fixture()
-def client(app):
-    """Test client. After each test, every table is emptied so tests stay independent."""
-    yield app.test_client()
+def _empty_all_tables(app):
     with app.app_context():
         for table in reversed(db.metadata.sorted_tables):
             db.session.execute(table.delete())
         db.session.commit()
+
+
+@pytest.fixture()
+def client(app):
+    """Test client. After each test, every table is emptied so tests stay independent."""
+    yield app.test_client()
+    _empty_all_tables(app)
+
+
+@pytest.fixture()
+def runner(app):
+    """CLI test runner. After each test, every table is emptied."""
+    yield app.test_cli_runner()
+    _empty_all_tables(app)

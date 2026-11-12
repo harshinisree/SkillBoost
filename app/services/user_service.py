@@ -12,7 +12,17 @@ def hash_password(password):
 
 
 def register(name, email, password, role):
-    """Create a pending account. Raises AppError(EMAIL_TAKEN, 409) on a duplicate."""
+    """Create a pending student or staff account (US1)."""
+    return _create_user(name, email, password, role=role, status="pending")
+
+
+def create_admin(name, email, password):
+    """Create an approved admin account (T1-1). Only reachable from the CLI."""
+    return _create_user(name, email, password, role="admin", status="approved")
+
+
+def _create_user(name, email, password, role, status):
+    """Save a new user. Raises AppError(EMAIL_TAKEN, 409) if the email is in use."""
     email = email.lower()
     taken = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
     if taken is not None:
@@ -23,7 +33,7 @@ def register(name, email, password, role):
         email=email,
         password_hash=hash_password(password),
         role=role,
-        status="pending",
+        status=status,
     )
     db.session.add(user)
     try:
