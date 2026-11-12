@@ -32,3 +32,11 @@ class RegisterSchema(AccountSchema):
     """Body of POST /auth/register. Admin is not an allowed role."""
 
     role: Literal["student", "staff"]
+
+
+class LoginSchema(BaseModel):
+    """Body of POST /auth/login. The email format is not checked here, so a
+    malformed email gets the same 401 as any other wrong login."""
+
+    email: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+    password: str = Field(min_length=1)

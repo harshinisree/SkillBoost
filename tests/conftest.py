@@ -2,11 +2,32 @@ import os
 
 import pytest
 from dotenv import load_dotenv
+from flask import Blueprint, g, jsonify
 
 from app import create_app
+from app.auth import role_required, token_required
 from app.extensions import db
 
 load_dotenv()
+
+TEST_JWT_SECRET = "test-secret-only-for-pytest-0123456789abcdef"
+
+
+def _add_test_only_routes(app):
+    """Protected routes that exist only during tests, to exercise the decorators."""
+    bp = Blueprint("test_only", __name__)
+
+    @bp.get("/_test/protected")
+    @token_required
+    def protected():
+        return jsonify({"user_id": g.current_user.id, "role": g.current_user.role})
+
+    @bp.get("/_test/staff-only")
+    @role_required("staff")
+    def staff_only():
+        return jsonify({"ok": True})
+
+    app.register_blueprint(bp)
 
 
 @pytest.fixture(scope="session")
@@ -20,8 +41,10 @@ def app():
         {
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": os.environ["TEST_DATABASE_URL"],
+            "JWT_SECRET": TEST_JWT_SECRET,
         }
     )
+    _add_test_only_routes(app)
     with app.app_context():
         db.drop_all()
         db.create_all()

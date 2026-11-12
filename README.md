@@ -8,3 +8,4 @@
    |---|---|---|---|---|
    | GET | /health | Public | 200 | none |
    | POST | /auth/register | Public | 201 | 400, 409 |
+   | POST | /auth/login | Public | 200 with token | 400, 401, 403 |

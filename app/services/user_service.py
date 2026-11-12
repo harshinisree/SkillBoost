@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import bcrypt
 from sqlalchemy.exc import IntegrityError
 
@@ -9,6 +11,35 @@ from ..models import User
 def hash_password(password):
     """Return a salted bcrypt hash of the password, as text."""
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def check_password(password, password_hash):
+    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+
+
+@lru_cache(maxsize=1)
+def _dummy_hash():
+    # Used when the email is unknown, so a login takes the same time either way
+    # and response timing does not reveal which emails have accounts.
+    return hash_password("dummy-password-for-equal-timing")
+
+
+def login(email, password):
+    """Return the user for correct credentials of an approved account.
+
+    Wrong password and unknown email raise the same 401. The password is checked
+    before the status, so a pending account is only revealed to its real owner.
+    """
+    user = db.session.execute(
+        db.select(User).filter_by(email=email.lower())
+    ).scalar_one_or_none()
+    stored_hash = user.password_hash if user is not None else _dummy_hash()
+    password_ok = check_password(password, stored_hash)
+    if user is None or not password_ok:
+        raise AppError("UNAUTHORIZED", "Invalid email or password.", 401)
+    if user.status != "approved":
+        raise AppError("FORBIDDEN", "Your account is waiting for admin approval.", 403)
+    return user
 
 
 def register(name, email, password, role):

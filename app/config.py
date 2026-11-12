@@ -10,3 +10,4 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     JWT_SECRET = os.environ.get("JWT_SECRET")
+    JWT_EXPIRES_SECONDS = 3600
