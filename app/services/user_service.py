@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ..errors import AppError
 from ..extensions import db
-from ..models import User
+from ..models import AuditLog, User
 
 
 def hash_password(password):
@@ -58,15 +58,27 @@ def list_pending():
     return db.session.execute(query).scalars().all()
 
 
-def approve(user_id):
-    """Approve an account (US2). Approving an approved account changes nothing."""
+def approve(user_id, actor):
+    """Approve an account (US2) and record who did it (T4-4).
+
+    The status change and the audit row are committed together: either both are
+    saved or neither is. Approving an approved account changes nothing, so it
+    writes no audit row.
+    """
     user = db.session.get(User, user_id)
     if user is None:
         raise AppError("NOT_FOUND", "User not found.", 404)
     if user.status != "approved":
         user.status = "approved"
+        db.session.add(_audit_entry(actor, "user.approve", "user", user.id))
         db.session.commit()
     return user
+
+
+def _audit_entry(actor, action, target_type, target_id):
+    return AuditLog(
+        actor_id=actor.id, action=action, target_type=target_type, target_id=target_id
+    )
 
 
 def _create_user(name, email, password, role, status):

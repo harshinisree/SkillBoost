@@ -3,6 +3,8 @@ import logging
 from flask import jsonify
 from werkzeug.exceptions import HTTPException, MethodNotAllowed
 
+from .extensions import db
+
 error_log = logging.getLogger("skillboost.errors")
 
 
@@ -49,4 +51,6 @@ def register_error_handlers(app):
     def handle_unexpected_error(err):
         # The full traceback goes to the server log, never to the client.
         error_log.exception("Unhandled error")
+        # Undo whatever this request half-did, so the session is usable again.
+        db.session.rollback()
         return error_response("INTERNAL_ERROR", "Something went wrong.", 500)

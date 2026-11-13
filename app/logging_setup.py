@@ -71,7 +71,6 @@ def configure_logging(app):
     @app.after_request
     def finish_request(response):
         response.headers["X-Request-ID"] = g.request_id
-        user = g.get("current_user")
         request_log.info(
             "request",
             extra={
@@ -80,7 +79,7 @@ def configure_logging(app):
                 "path": request.path,
                 "status": response.status_code,
                 "duration_ms": round((time.perf_counter() - g.request_started) * 1000, 1),
-                "user_id": user.id if user is not None else None,
+                "user_id": g.get("user_id"),
             },
         )
         return response

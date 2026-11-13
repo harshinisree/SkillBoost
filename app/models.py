@@ -74,3 +74,27 @@ class Enrollment(db.Model):
             "course_id": self.course_id,
             "enrolled_at": self.enrolled_at.isoformat() if self.enrolled_at else None,
         }
+
+
+class AuditLog(db.Model):
+    """Who did what to which record, and when. Rows are only ever added."""
+
+    __tablename__ = "audit_log"
+    __table_args__ = (db.Index("ix_audit_log_target", "target_type", "target_id"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    action = db.Column(db.String(50), nullable=False)
+    target_type = db.Column(db.String(50), nullable=False)
+    target_id = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "actor_id": self.actor_id,
+            "action": self.action,
+            "target_type": self.target_type,
+            "target_id": self.target_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
