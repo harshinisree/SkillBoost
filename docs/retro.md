@@ -14,3 +14,8 @@
    - **Worked:** US4 to US7 delivered; 142 tests; tests now guard against N+1 queries and prove the database's own safety nets (UNIQUE, foreign key, CHECK).
    - **Did not work:** one branch was made before the previous story was merged; a stale server returned 405; the test run now takes over 2 minutes.
    - **Change:** check the History tab before every branch; run the server with --debug; make tests faster with a cheaper bcrypt setting (T4-8).
+
+      ## Sprint 3 (goal: seat limits that hold under concurrency)
+   - **Worked:** the race test (10 students, 3 seats) caught a real bug: locking the course row alone still oversold, because REPEATABLE READ served a stale snapshot. Fixed with locking reads; 10/10 runs pass.
+   - **Did not work:** the design doc's plan was wrong in a way only a real concurrency test on MySQL could reveal.
+   - **Change:** prove critical rules with tests that fail when the protection is removed, not just tests that pass.
