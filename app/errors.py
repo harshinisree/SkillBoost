@@ -20,6 +20,7 @@ def error_response(code, message, status):
 HTTP_MESSAGES = {
     404: "Resource not found.",
     405: "This method is not allowed for this URL.",
+    429: "Too many attempts. Please wait a minute and try again.",
 }
 
 

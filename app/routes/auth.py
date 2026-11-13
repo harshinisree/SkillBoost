@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
 from ..auth import create_access_token
+from ..extensions import limiter
 from ..schemas import LoginSchema, RegisterSchema, validate_body
 from ..services import user_service
 
@@ -15,6 +16,7 @@ def register():
 
 
 @bp.post("/login")
+@limiter.limit(lambda: current_app.config["LOGIN_RATE_LIMIT"])
 def login():
     data = validate_body(LoginSchema, request.get_json(silent=True))
     user = user_service.login(data.email, data.password)

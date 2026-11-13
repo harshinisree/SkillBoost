@@ -3,7 +3,7 @@ from flask import Flask
 from .cli import register_cli
 from .config import Config
 from .errors import register_error_handlers
-from .extensions import db
+from .extensions import cors, db, limiter
 
 
 def create_app(config_overrides=None):
@@ -14,6 +14,8 @@ def create_app(config_overrides=None):
         app.config.update(config_overrides)
 
     db.init_app(app)
+    limiter.init_app(app)
+    cors.init_app(app, origins=app.config["CORS_ORIGINS"])
     from . import models  # noqa: F401  (makes db.create_all() see the tables)
 
     register_error_handlers(app)
