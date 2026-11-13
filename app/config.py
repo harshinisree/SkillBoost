@@ -24,5 +24,8 @@ class Config:
     RATELIMIT_STORAGE_URI = "memory://"
     RATELIMIT_HEADERS_ENABLED = True
 
+    # DEBUG, INFO, WARNING, or ERROR.
+    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
     # Browser front ends allowed to call this API. Empty means none.
     CORS_ORIGINS = _origins(os.environ.get("CORS_ORIGINS", ""))
