@@ -164,7 +164,7 @@ sequenceDiagram
 - The count happens after the lock is held, never before. That order is the whole fix.
 - The lock is on one course row, so enrollments in different courses do not block each other.
 - The UNIQUE (student\_id, course\_id) constraint is a second safety net: if the same student races themselves, the database rejects the second insert and the service maps that error to 409.
-
+- The duplicate check and seat count are locking reads too; under REPEATABLE READ a plain read would use a snapshot taken before the lock was granted.
 **Proof (the concurrency test)**
 
 Create a course with capacity 3. Fire 10 enroll requests from 10 different students at the same time, each on its own database connection. Assert exactly 3 return 201, 7 return 409, and the table holds exactly 3 rows. This test commits for real (it cannot use a rolled-back test transaction) and cleans up afterward. It must run on MySQL, because SQLite does not support this kind of row lock.
