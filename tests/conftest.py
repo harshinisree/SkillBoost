@@ -44,6 +44,9 @@ def app():
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": os.environ["TEST_DATABASE_URL"],
             "JWT_SECRET": TEST_JWT_SECRET,
+            # Tests log in hundreds of times; the T4-2 test sets the real limit itself.
+            "LOGIN_RATE_LIMIT": "10000 per minute",
+            "CORS_ORIGINS": ["https://frontend.example"],
         }
     )
     _add_test_only_routes(app)
