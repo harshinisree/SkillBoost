@@ -78,6 +78,7 @@ def token_required(view):
             raise AppError("UNAUTHORIZED", "Invalid token.", 401)
 
         g.current_user = user
+        g.user_id = user.id  # a plain number, safe to log even if the request later fails
         return view(*args, **kwargs)
 
     return wrapper

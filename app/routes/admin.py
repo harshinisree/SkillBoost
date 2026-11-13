@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, g, jsonify
 
 from ..auth import role_required
 from ..services import user_service
@@ -16,5 +16,5 @@ def pending():
 @bp.post("/approve/<int:user_id>")
 @role_required("admin")
 def approve(user_id):
-    user = user_service.approve(user_id)
+    user = user_service.approve(user_id, g.current_user)
     return jsonify(user.to_dict()), 200
