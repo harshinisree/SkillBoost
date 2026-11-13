@@ -4,6 +4,7 @@ from .cli import register_cli
 from .config import Config
 from .errors import register_error_handlers
 from .extensions import cors, db, limiter
+from .logging_setup import configure_logging
 
 
 def create_app(config_overrides=None):
@@ -18,6 +19,7 @@ def create_app(config_overrides=None):
     cors.init_app(app, origins=app.config["CORS_ORIGINS"])
     from . import models  # noqa: F401  (makes db.create_all() see the tables)
 
+    configure_logging(app)
     register_error_handlers(app)
     register_cli(app)
 
