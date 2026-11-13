@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from ..errors import AppError
@@ -6,21 +7,51 @@ from ..models import Course, Enrollment
 
 
 def enroll(student, course_id):
-    """Enroll a student in a course (US6). The seat limit comes in US6b."""
-    if db.session.get(Course, course_id) is None:
-        raise AppError("NOT_FOUND", "Course not found.", 404)
-    if _find(student, course_id) is not None:
-        raise _already_enrolled()
+    """Enroll a student, never past the course's capacity (US6, US6b).
+
+    The course row is locked (SELECT ... FOR UPDATE) before anything is checked,
+    so concurrent requests for the same course run one at a time and two
+    students can never both take the last seat. The lock is released by the
+    commit or rollback that ends the transaction.
+
+    The duplicate check and the seat count are locking reads too. Under MySQL's
+    default REPEATABLE READ, a plain SELECT reads from a snapshot taken at the
+    transaction's first read (loading the logged-in user, before this request
+    waited for the lock), so it would miss seats taken while it waited.
+    Locking reads always see the latest committed rows.
+    """
+    course = db.session.execute(
+        db.select(Course).filter_by(id=course_id).with_for_update()
+    ).scalar_one_or_none()
+    if course is None:
+        _fail(AppError("NOT_FOUND", "Course not found.", 404))
+    if _find(student, course_id, lock=True) is not None:
+        _fail(_already_enrolled())
+
+    seats_taken = db.session.execute(
+        db.select(func.count())
+        .select_from(Enrollment)
+        .filter_by(course_id=course_id)
+        .with_for_update()
+    ).scalar_one()
+    if seats_taken >= course.capacity:
+        _fail(AppError("COURSE_FULL", "This course has no seats left.", 409))
 
     enrollment = Enrollment(student_id=student.id, course_id=course_id)
     db.session.add(enrollment)
     try:
         db.session.commit()
     except IntegrityError:
-        # Two identical requests raced; the UNIQUE (student_id, course_id) caught it.
+        # Same student, two identical requests: the UNIQUE constraint caught it.
         db.session.rollback()
         raise _already_enrolled()
     return enrollment
+
+
+def _fail(error):
+    """End the transaction (releasing the lock) and raise the error."""
+    db.session.rollback()
+    raise error
 
 
 def list_for_student(student):
@@ -53,8 +84,10 @@ def drop(student, course_id):
     db.session.commit()
 
 
-def _find(student, course_id):
+def _find(student, course_id, lock=False):
     query = db.select(Enrollment).filter_by(student_id=student.id, course_id=course_id)
+    if lock:
+        query = query.with_for_update()
     return db.session.execute(query).scalar_one_or_none()
 
 
