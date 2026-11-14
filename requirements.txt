@@ -14,3 +14,4 @@ Flask-Limiter==4.1.1
 Flask-Cors==6.0.5
 Flask-Migrate==4.1.0
 openapi-spec-validator==0.9.0
+gunicorn==27.0.1

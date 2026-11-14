@@ -1,0 +1,37 @@
+# Local setup: the API plus its own MySQL, started with one command.
+#   docker compose up --build
+# The passwords below are for this local demo only. Never reuse them anywhere real.
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: skillboost
+      MYSQL_USER: skillboost
+      MYSQL_PASSWORD: skillboost
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql+pymysql://skillboost:skillboost@db:3306/skillboost
+      JWT_SECRET: ${JWT_SECRET:-local-compose-secret-change-me-0123456789abcdef}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db_data:

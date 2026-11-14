@@ -44,3 +44,32 @@ jobs:
 
       - name: Run tests with coverage
         run: pytest --cov=app --cov-report=term-missing
+
+  compose:
+    # Proves the README promise: one command starts the app and MySQL.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Build and start the app and MySQL
+        run: docker compose up --build --detach --wait
+
+      - name: Health check
+        run: curl --fail --silent --show-error http://localhost:8000/health
+
+      - name: Seed demo data and log in
+        run: |
+          docker compose exec -T app flask --app app seed
+          curl --fail --silent --show-error -X POST http://localhost:8000/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email": "admin@skillboost-demo.com", "password": "DemoPass123!"}'
+
+      - name: Show container logs if anything failed
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop and remove everything
+        if: always()
+        run: docker compose down --volumes
