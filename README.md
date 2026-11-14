@@ -10,6 +10,25 @@ A Flask and MySQL backend for an online learning platform: staff publish courses
 flask --app app db upgrade      # builds every table from the migration
 flask --app app create-admin    # creates the first admin account
 ```
+## Try it
+
+```
+flask --app app seed            # demo users, courses, and enrollments (safe to run twice)
+flask --app app run --debug
+```
+
+Open http://127.0.0.1:5000/docs for interactive API docs. Log in with `POST /auth/login`, then click **Authorize** and paste the `access_token`.
+
+All demo accounts use the password `DemoPass123!`:
+
+| Role | Email |
+|---|---|
+| Admin | admin@skillboost-demo.com |
+| Staff | meena@skillboost-demo.com, arjun@skillboost-demo.com |
+| Student | ravi@skillboost-demo.com (also priya, karthik, divya, sanjay) |
+| Student waiting for approval | anu@skillboost-demo.com |
+
+"System Design Basics" is already full, so enrolling in it shows the `409 COURSE_FULL` response.
 
 ## API
 
