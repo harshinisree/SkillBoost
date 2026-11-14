@@ -3,6 +3,14 @@
 ![CI](https://github.com/harshinisree/SkillBoost/actions/workflows/ci.yml/badge.svg)
 
 A Flask and MySQL backend for an online learning platform: staff publish courses, students enroll, and an admin approves who gets access. Seat limits hold even when many students enroll at the same moment.
+## Quick start with Docker
+
+```
+docker compose up --build
+docker compose exec app flask --app app seed
+```
+
+Open http://localhost:8000/docs. This starts the API and its own MySQL; the database tables are built automatically.
 
 ## Database setup
 
