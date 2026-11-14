@@ -28,12 +28,7 @@ def enroll(student, course_id):
     if _find(student, course_id, lock=True) is not None:
         _fail(_already_enrolled())
 
-    seats_taken = db.session.execute(
-        db.select(func.count())
-        .select_from(Enrollment)
-        .filter_by(course_id=course_id)
-        .with_for_update()
-    ).scalar_one()
+    seats_taken = db.session.execute(seat_count_query(course_id).with_for_update()).scalar_one()
     if seats_taken >= course.capacity:
         _fail(AppError("COURSE_FULL", "This course has no seats left.", 409))
 
@@ -59,12 +54,7 @@ def list_for_student(student):
 
     One joined query, however many enrollments there are.
     """
-    query = (
-        db.select(Enrollment.course_id, Course.title, Enrollment.enrolled_at)
-        .join(Course, Course.id == Enrollment.course_id)
-        .where(Enrollment.student_id == student.id)
-        .order_by(Enrollment.enrolled_at.desc(), Enrollment.id.desc())
-    )
+    query = my_enrollments_query(student.id)
     return [
         {
             "course_id": row.course_id,
@@ -84,8 +74,28 @@ def drop(student, course_id):
     db.session.commit()
 
 
+def seat_count_query(course_id):
+    """How many seats a course has taken. Also used by the EXPLAIN report."""
+    return db.select(func.count()).select_from(Enrollment).filter_by(course_id=course_id)
+
+
+def enrollment_query(student_id, course_id):
+    """One student's enrollment in one course. Also used by the EXPLAIN report."""
+    return db.select(Enrollment).filter_by(student_id=student_id, course_id=course_id)
+
+
+def my_enrollments_query(student_id):
+    """A student's enrollments with course titles. Also used by the EXPLAIN report."""
+    return (
+        db.select(Enrollment.course_id, Course.title, Enrollment.enrolled_at)
+        .join(Course, Course.id == Enrollment.course_id)
+        .where(Enrollment.student_id == student_id)
+        .order_by(Enrollment.enrolled_at.desc(), Enrollment.id.desc())
+    )
+
+
 def _find(student, course_id, lock=False):
-    query = db.select(Enrollment).filter_by(student_id=student.id, course_id=course_id)
+    query = enrollment_query(student.id, course_id)
     if lock:
         query = query.with_for_update()
     return db.session.execute(query).scalar_one_or_none()

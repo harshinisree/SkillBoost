@@ -17,22 +17,27 @@ SORTS = {
 }
 
 
+def list_query(q="", sort="-created_at"):
+    """The course-list query before paging. Also used by the EXPLAIN report."""
+    query = db.select(Course)
+    if q:
+        # autoescape makes % and _ in the search text match literally.
+        query = query.where(func.lower(Course.title).contains(q.lower(), autoescape=True))
+    return query.order_by(*SORTS[sort])
+
+
 def list_courses(page=1, per_page=20, q="", sort="-created_at"):
     """One page of courses, optionally filtered by title (US5).
 
     Returns (items, total, page, per_page). per_page is capped at MAX_PER_PAGE.
     """
     per_page = min(per_page, MAX_PER_PAGE)
-    query = db.select(Course)
-    if q:
-        # autoescape makes % and _ in the search text match literally.
-        query = query.where(func.lower(Course.title).contains(q.lower(), autoescape=True))
-
+    query = list_query(q, sort)
     total = db.session.execute(
-        db.select(func.count()).select_from(query.subquery())
+        db.select(func.count()).select_from(query.order_by(None).subquery())
     ).scalar_one()
     items = db.session.execute(
-        query.order_by(*SORTS[sort]).limit(per_page).offset((page - 1) * per_page)
+        query.limit(per_page).offset((page - 1) * per_page)
     ).scalars().all()
     return items, total, page, per_page
 
