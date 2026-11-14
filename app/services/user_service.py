@@ -24,15 +24,18 @@ def _dummy_hash():
     return hash_password("dummy-password-for-equal-timing")
 
 
+def by_email_query(email):
+    """Find a user by email. Also used by the EXPLAIN report."""
+    return db.select(User).filter_by(email=email.lower())
+
+
 def login(email, password):
     """Return the user for correct credentials of an approved account.
 
     Wrong password and unknown email raise the same 401. The password is checked
     before the status, so a pending account is only revealed to its real owner.
     """
-    user = db.session.execute(
-        db.select(User).filter_by(email=email.lower())
-    ).scalar_one_or_none()
+    user = db.session.execute(by_email_query(email)).scalar_one_or_none()
     stored_hash = user.password_hash if user is not None else _dummy_hash()
     password_ok = check_password(password, stored_hash)
     if user is None or not password_ok:

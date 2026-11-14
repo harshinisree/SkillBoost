@@ -7,6 +7,13 @@ from .services import user_service
 
 
 def register_cli(app):
+    @app.cli.command("explain-queries")
+    def explain_queries():
+        """Print MySQL's EXPLAIN plan for the key queries, as a Markdown table."""
+        from .query_report import markdown_report
+
+        click.echo(markdown_report())
+
     @app.cli.command("create-admin")
     @click.option("--name", prompt="Name", help="Full name of the admin.")
     @click.option("--email", prompt="Email", help="Email address used to log in.")
