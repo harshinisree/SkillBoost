@@ -2,18 +2,11 @@ import click
 from pydantic import ValidationError
 
 from .errors import AppError
-from .extensions import db
 from .schemas import AccountSchema
 from .services import user_service
 
 
 def register_cli(app):
-    @app.cli.command("init-db")
-    def init_db():
-        """Create all tables (temporary, until the initial migration exists)."""
-        db.create_all()
-        click.echo("Tables created.")
-
     @app.cli.command("create-admin")
     @click.option("--name", prompt="Name", help="Full name of the admin.")
     @click.option("--email", prompt="Email", help="Email address used to log in.")

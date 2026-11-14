@@ -36,3 +36,9 @@
    | No locks | 9, then 6: oversold |
    | Course row locked, plain seat count | 10: oversold every run |
    | Course row locked and locking seat count (final) | 3, in 10 of 10 runs |
+
+   ## Database setup
+   ```
+   flask --app app db upgrade      # builds every table from the migration
+   flask --app app create-admin    # creates the first admin account
+   ```
