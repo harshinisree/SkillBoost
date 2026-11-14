@@ -7,6 +7,20 @@ from .services import user_service
 
 
 def register_cli(app):
+    @app.cli.command("seed")
+    def seed():
+        """Load demo users, courses, and enrollments. Safe to run more than once."""
+        from .seed import DEMO_PASSWORD, demo_logins, run_seed
+
+        added = run_seed()
+        click.echo(
+            f"Added {added['users']} users, {added['courses']} courses, "
+            f"{added['enrollments']} enrollments."
+        )
+        click.echo(f"Every demo account uses the password: {DEMO_PASSWORD}")
+        for role, email in demo_logins():
+            click.echo(f"  {role:<26} {email}")
+
     @app.cli.command("explain-queries")
     def explain_queries():
         """Print MySQL's EXPLAIN plan for the key queries, as a Markdown table."""
