@@ -19,3 +19,9 @@
 - **Worked:** the race test (10 students, 3 seats) caught a real bug: locking the course row alone still oversold, because REPEATABLE READ served a stale snapshot. Fixed with locking reads; 10/10 runs pass.
 - **Did not work:** the design doc's plan was wrong in a way only a real concurrency test on MySQL could reveal.
 - **Change:** prove critical rules with tests that fail when the protection is removed, not just tests that pass.
+
+
+## Sprint 4 (goal: production-ready)
+- **Worked:** 10 tasks delivered: error format, rate limit and CORS, JSON logging, audit log, indexes with an EXPLAIN report, Swagger docs and seed data, Docker Compose, quality gates, migrations, and the final README. 227 tests, 98% coverage; ruff and mypy run in CI.
+- **Did not work:** the request logger crashed after a database error (found by a test and fixed with a rollback); the generated migration needed manual fixes before it would run on MySQL; a full test run took over 2 minutes until bcrypt was made cheaper in tests (now about 45 seconds).
+- **Change:** read generated code like any other code before committing it. The live deploy was deferred: free hosting sleeps when idle, and the repo already runs with one command.
