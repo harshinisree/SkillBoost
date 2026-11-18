@@ -1,0 +1,9 @@
+# Runs ruff on the files you are committing, before every commit (T4-8).
+# One-time setup:  pre-commit install
+# Run on everything: pre-commit run --all-files
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3  # keep in step with ruff in requirements-dev.txt
+    hooks:
+      - id: ruff-check
+        args: [--fix]

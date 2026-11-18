@@ -1,8 +1,9 @@
 # SkillBoost
 
-![CI](https://github.com/harshinisree/SkillBoost/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/harshinisree/SkillBoost/actions/workflows/ci.yml/badge.svg) ![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/harshinisree/SkillBoost/badges/coverage.json)
 
 A Flask and MySQL backend for an online learning platform: staff publish courses, students enroll, and an admin approves who gets access. Seat limits hold even when many students enroll at the same moment.
+
 ## Quick start with Docker
 
 ```
@@ -18,6 +19,7 @@ Open http://localhost:8000/docs. This starts the API and its own MySQL; the data
 flask --app app db upgrade      # builds every table from the migration
 flask --app app create-admin    # creates the first admin account
 ```
+
 ## Try it
 
 ```
@@ -93,3 +95,11 @@ The UNIQUE (student, course) constraint is a second safety net for a double-clic
 - Every per-request lookup uses an index: login and the duplicate check read one row through a unique index (`const`); the seat count reads only the course_id index (`Using index`); my-enrollments uses the (student_id, course_id) index and joins courses by primary key.
 - The course list reads the whole table and sorts it (`ALL`, `Using filesort`), which is fine at this size. Title search uses `LIKE '%...%'`, whose leading wildcard can never use a normal index. At scale: a FULLTEXT index for search, and an index on (created_at, id) for the newest-first page.
 - Plans depend on data size: on a tiny development database (3 courses), MySQL 8 chose a skip scan on the (student_id, course_id) index for the seat count; with realistic data it uses the course_id index, which the tests verify on MySQL 8.
+
+## Development
+
+```
+pip install -r requirements-dev.txt
+pre-commit install                  # ruff runs before every commit
+ruff check . && mypy app && pytest --cov=app
+```

@@ -1,35 +1,48 @@
+from collections.abc import Sequence
 from functools import lru_cache
 
 import bcrypt
+from flask import current_app, has_app_context
+from sqlalchemy import Select
 from sqlalchemy.exc import IntegrityError
 
 from ..errors import AppError
 from ..extensions import db
 from ..models import AuditLog, User
 
+DEFAULT_BCRYPT_ROUNDS = 12
 
-def hash_password(password):
+
+def _bcrypt_rounds() -> int:
+    """The configured work factor; the safe default outside a running app."""
+    if has_app_context():
+        return current_app.config.get("BCRYPT_ROUNDS", DEFAULT_BCRYPT_ROUNDS)
+    return DEFAULT_BCRYPT_ROUNDS
+
+
+def hash_password(password: str) -> str:
     """Return a salted bcrypt hash of the password, as text."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    salt = bcrypt.gensalt(rounds=_bcrypt_rounds())
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
-def check_password(password, password_hash):
+def check_password(password: str, password_hash: str) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
 
 
 @lru_cache(maxsize=1)
-def _dummy_hash():
+def _dummy_hash() -> str:
     # Used when the email is unknown, so a login takes the same time either way
     # and response timing does not reveal which emails have accounts.
     return hash_password("dummy-password-for-equal-timing")
 
 
-def by_email_query(email):
+def by_email_query(email: str) -> Select:
     """Find a user by email. Also used by the EXPLAIN report."""
     return db.select(User).filter_by(email=email.lower())
 
 
-def login(email, password):
+def login(email: str, password: str) -> User:
     """Return the user for correct credentials of an approved account.
 
     Wrong password and unknown email raise the same 401. The password is checked
@@ -45,23 +58,23 @@ def login(email, password):
     return user
 
 
-def register(name, email, password, role):
+def register(name: str, email: str, password: str, role: str) -> User:
     """Create a pending student or staff account (US1)."""
     return _create_user(name, email, password, role=role, status="pending")
 
 
-def create_admin(name, email, password):
+def create_admin(name: str, email: str, password: str) -> User:
     """Create an approved admin account (T1-1). Only reachable from the CLI."""
     return _create_user(name, email, password, role="admin", status="approved")
 
 
-def list_pending():
+def list_pending() -> Sequence[User]:
     """All accounts waiting for approval, oldest first (US2)."""
     query = db.select(User).filter_by(status="pending").order_by(User.created_at, User.id)
     return db.session.execute(query).scalars().all()
 
 
-def approve(user_id, actor):
+def approve(user_id: int, actor: User) -> User:
     """Approve an account (US2) and record who did it (T4-4).
 
     The status change and the audit row are committed together: either both are
@@ -78,13 +91,13 @@ def approve(user_id, actor):
     return user
 
 
-def _audit_entry(actor, action, target_type, target_id):
+def _audit_entry(actor: User, action: str, target_type: str, target_id: int) -> AuditLog:
     return AuditLog(
         actor_id=actor.id, action=action, target_type=target_type, target_id=target_id
     )
 
 
-def _create_user(name, email, password, role, status):
+def _create_user(name: str, email: str, password: str, role: str, status: str) -> User:
     """Save a new user. Raises AppError(EMAIL_TAKEN, 409) if the email is in use."""
     email = email.lower()
     taken = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()

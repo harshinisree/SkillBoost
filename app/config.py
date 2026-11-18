@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _origins(value):
+def _origins(value: str) -> list[str]:
     """'https://a.com, https://b.com' -> ['https://a.com', 'https://b.com']"""
     return [origin.strip() for origin in value.split(",") if origin.strip()]
 
@@ -16,6 +16,10 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     JWT_SECRET = os.environ.get("JWT_SECRET")
     JWT_EXPIRES_SECONDS = 3600
+
+    # bcrypt work factor: each +1 doubles the time to hash (and to guess) a password.
+    # 12 is bcrypt's own default. Tests lower it to 4 so the suite runs fast.
+    BCRYPT_ROUNDS = 12
 
     # Login attempts allowed per client IP. Slows down password guessing.
     LOGIN_RATE_LIMIT = os.environ.get("LOGIN_RATE_LIMIT", "5 per minute")

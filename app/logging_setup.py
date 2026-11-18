@@ -16,7 +16,7 @@ import time
 import uuid
 from datetime import UTC, datetime
 
-from flask import g, has_request_context, request
+from flask import Flask, Response, g, has_request_context, request
 
 LOGGER_NAME = "skillboost"
 REQUEST_FIELDS = ("request_id", "method", "path", "status", "duration_ms", "user_id")
@@ -24,11 +24,14 @@ _SAFE_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 request_log = logging.getLogger(f"{LOGGER_NAME}.request")
 
+# Successful requests to these paths are not logged; failures always are (T4-8).
+QUIET_PATHS = frozenset({"/health"})
+
 
 class JsonFormatter(logging.Formatter):
     """Format a log record as a single line of JSON."""
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         entry = {
             "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat(timespec="milliseconds"),
             "level": record.levelname,
@@ -47,13 +50,13 @@ class JsonFormatter(logging.Formatter):
 class RequestIdFilter(logging.Filter):
     """Add the current request's ID to every record logged during that request."""
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         if getattr(record, "request_id", None) is None and has_request_context():
             record.request_id = g.get("request_id")
         return True
 
 
-def configure_logging(app):
+def configure_logging(app: Flask) -> None:
     logger = logging.getLogger(LOGGER_NAME)
     logger.setLevel(app.config["LOG_LEVEL"])
     if not logger.handlers:  # create_app can run many times (tests); add one handler only
@@ -63,14 +66,16 @@ def configure_logging(app):
         logger.addHandler(handler)
 
     @app.before_request
-    def start_request():
+    def start_request() -> None:
         incoming = request.headers.get("X-Request-ID", "")
         g.request_id = incoming if _SAFE_REQUEST_ID.match(incoming) else uuid.uuid4().hex
         g.request_started = time.perf_counter()
 
     @app.after_request
-    def finish_request(response):
+    def finish_request(response: Response) -> Response:
         response.headers["X-Request-ID"] = g.request_id
+        if request.path in QUIET_PATHS and response.status_code < 400:
+            return response  # routine health checks (Docker polls every few seconds) stay out of the log
         request_log.info(
             "request",
             extra={

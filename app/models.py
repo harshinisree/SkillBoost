@@ -1,9 +1,11 @@
+from typing import Any
+
 from sqlalchemy import func
 
 from .extensions import db
 
 
-class User(db.Model):
+class User(db.Model):  # type: ignore[name-defined]  # db.Model is created at runtime
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -20,7 +22,7 @@ class User(db.Model):
     )
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Safe public view of a user. Never includes the password hash."""
         return {
             "id": self.id,
@@ -32,7 +34,7 @@ class User(db.Model):
         }
 
 
-class Course(db.Model):
+class Course(db.Model):  # type: ignore[name-defined]  # db.Model is created at runtime
     __tablename__ = "courses"
     __table_args__ = (
         db.CheckConstraint("capacity >= 1", name="ck_courses_capacity_positive"),
@@ -45,7 +47,7 @@ class Course(db.Model):
     staff_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "title": self.title,
@@ -56,7 +58,7 @@ class Course(db.Model):
         }
 
 
-class Enrollment(db.Model):
+class Enrollment(db.Model):  # type: ignore[name-defined]  # db.Model is created at runtime
     __tablename__ = "enrollments"
     __table_args__ = (
         db.UniqueConstraint("student_id", "course_id", name="uq_enrollments_student_course"),
@@ -67,7 +69,7 @@ class Enrollment(db.Model):
     course_id = db.Column(db.Integer, db.ForeignKey("courses.id"), nullable=False, index=True)
     enrolled_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "student_id": self.student_id,
@@ -76,7 +78,7 @@ class Enrollment(db.Model):
         }
 
 
-class AuditLog(db.Model):
+class AuditLog(db.Model):  # type: ignore[name-defined]  # db.Model is created at runtime
     """Who did what to which record, and when. Rows are only ever added."""
 
     __tablename__ = "audit_log"
@@ -89,7 +91,7 @@ class AuditLog(db.Model):
     target_id = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "actor_id": self.actor_id,

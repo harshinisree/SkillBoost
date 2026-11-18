@@ -1,4 +1,5 @@
 from flask import Blueprint, current_app, jsonify, request
+from flask.typing import ResponseReturnValue
 
 from ..auth import create_access_token
 from ..extensions import limiter
@@ -9,7 +10,7 @@ bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 @bp.post("/register")
-def register():
+def register() -> ResponseReturnValue:
     data = validate_body(RegisterSchema, request.get_json(silent=True))
     user = user_service.register(data.name, data.email, data.password, data.role)
     return jsonify(user.to_dict()), 201
@@ -17,7 +18,7 @@ def register():
 
 @bp.post("/login")
 @limiter.limit(lambda: current_app.config["LOGIN_RATE_LIMIT"])
-def login():
+def login() -> ResponseReturnValue:
     data = validate_body(LoginSchema, request.get_json(silent=True))
     user = user_service.login(data.email, data.password)
     return jsonify(

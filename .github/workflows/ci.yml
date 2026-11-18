@@ -8,6 +8,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # only used to publish the coverage badge after a merge to main
 
     services:
       mysql:
@@ -37,13 +39,32 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Lint with ruff
         run: ruff check .
 
-      - name: Run tests with coverage
-        run: pytest --cov=app --cov-report=term-missing
+      - name: Type-check with mypy
+        run: mypy app
+
+      - name: Run tests with coverage (fails below 80%)
+        run: pytest --cov=app --cov-report=term-missing --cov-report=json:coverage.json --cov-fail-under=80
+
+      - name: Publish the coverage badge
+        # Only after a merge to main; pull requests never write to the repository.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir badge
+          python .github/scripts/coverage_badge.py coverage.json badge/coverage.json
+          cd badge
+          git init --quiet --initial-branch=badges
+          git add coverage.json
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "Update coverage badge"
+          git push --force --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges
 
   compose:
     # Proves the README promise: one command starts the app and MySQL.

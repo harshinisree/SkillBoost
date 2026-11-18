@@ -22,18 +22,18 @@ def request_logs(caplog):
 
 
 def test_t4_3_each_request_writes_one_json_line(client, request_logs):
-    client.get("/health")
+    client.get("/openapi.json")
 
     [line] = request_logs()
     assert line["level"] == "INFO"
-    assert (line["method"], line["path"], line["status"]) == ("GET", "/health", 200)
+    assert (line["method"], line["path"], line["status"]) == ("GET", "/openapi.json", 200)
     assert line["duration_ms"] >= 0
     assert line["timestamp"].endswith("+00:00")
     assert line["request_id"]
 
 
 def test_t4_3_response_carries_the_same_request_id_as_the_log(client, request_logs):
-    response = client.get("/health")
+    response = client.get("/openapi.json")
 
     [line] = request_logs()
     assert re.fullmatch(r"[0-9a-f]{32}", response.headers["X-Request-ID"])
@@ -41,7 +41,7 @@ def test_t4_3_response_carries_the_same_request_id_as_the_log(client, request_lo
 
 
 def test_t4_3_incoming_request_id_is_reused(client, request_logs):
-    response = client.get("/health", headers={"X-Request-ID": "trace-abc-123"})
+    response = client.get("/openapi.json", headers={"X-Request-ID": "trace-abc-123"})
 
     assert response.headers["X-Request-ID"] == "trace-abc-123"
     assert request_logs()[0]["request_id"] == "trace-abc-123"
@@ -70,7 +70,7 @@ def test_t4_3_logged_in_user_id_is_logged(client, make_user, request_logs):
 
 
 def test_t4_3_anonymous_requests_have_no_user_id(client, request_logs):
-    client.get("/health")
+    client.get("/openapi.json")
 
     assert "user_id" not in request_logs()[0]
 

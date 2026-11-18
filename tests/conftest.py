@@ -46,6 +46,8 @@ def app():
             "JWT_SECRET": TEST_JWT_SECRET,
             # Tests log in hundreds of times; the T4-2 test sets the real limit itself.
             "LOGIN_RATE_LIMIT": "10000 per minute",
+            # bcrypt's minimum cost: same algorithm, far less work per hash (T4-8).
+            "BCRYPT_ROUNDS": 4,
             "CORS_ORIGINS": ["https://frontend.example"],
         }
     )

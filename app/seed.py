@@ -47,7 +47,7 @@ ENROLLMENTS = [
 ]
 
 
-def _user(name, email, role, approve_by=None):
+def _user(name: str, email: str, role: str, approve_by: User | None = None) -> tuple[User, bool]:
     """Return the user with this email, creating (and approving) it if missing."""
     user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
     if user is not None:
@@ -60,7 +60,7 @@ def _user(name, email, role, approve_by=None):
     return user, True
 
 
-def run_seed():
+def run_seed() -> dict[str, int]:
     """Create whatever demo data is missing. Returns counts of what was added."""
     added = {"users": 0, "courses": 0, "enrollments": 0}
 
@@ -99,7 +99,7 @@ def run_seed():
     return added
 
 
-def demo_logins():
+def demo_logins() -> list[tuple[str, str]]:
     """(role, email) rows for the README and the command's output."""
     rows = [("admin", ADMIN[1])]
     rows += [("staff", email) for _, email in STAFF]

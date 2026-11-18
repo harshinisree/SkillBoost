@@ -1,6 +1,6 @@
 import logging
 
-from flask import jsonify
+from flask import Flask, Response, jsonify
 from werkzeug.exceptions import HTTPException, MethodNotAllowed
 
 from .extensions import db
@@ -11,14 +11,14 @@ error_log = logging.getLogger("skillboost.errors")
 class AppError(Exception):
     """Raised by services; turned into the standard JSON error by the handler."""
 
-    def __init__(self, code, message, status):
+    def __init__(self, code: str, message: str, status: int) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
         self.status = status
 
 
-def error_response(code, message, status):
+def error_response(code: str, message: str, status: int) -> tuple[Response, int]:
     return jsonify({"error": {"code": code, "message": message}}), status
 
 
@@ -30,25 +30,26 @@ HTTP_MESSAGES = {
 }
 
 
-def register_error_handlers(app):
+def register_error_handlers(app: Flask) -> None:
     """Every error leaves the API in one shape: {"error": {"code": ..., "message": ...}}."""
 
     @app.errorhandler(AppError)
-    def handle_app_error(err):
+    def handle_app_error(err: AppError) -> tuple[Response, int]:
         return error_response(err.code, err.message, err.status)
 
     @app.errorhandler(HTTPException)
-    def handle_http_error(err):
+    def handle_http_error(err: HTTPException) -> tuple[Response, int]:
         # Werkzeug's own errors (404 unknown URL, 405 wrong method, ...) as JSON.
+        status_code = err.code or 500  # Werkzeug types .code as optional
         code = err.name.upper().replace(" ", "_")
-        message = HTTP_MESSAGES.get(err.code, f"{err.name}.")
-        response, status = error_response(code, message, err.code)
+        message = HTTP_MESSAGES.get(status_code, f"{err.name}.")
+        response, status = error_response(code, message, status_code)
         if isinstance(err, MethodNotAllowed) and err.valid_methods:
             response.headers["Allow"] = ", ".join(sorted(err.valid_methods))
         return response, status
 
     @app.errorhandler(Exception)
-    def handle_unexpected_error(err):
+    def handle_unexpected_error(err: Exception) -> tuple[Response, int]:
         # The full traceback goes to the server log, never to the client.
         error_log.exception("Unhandled error")
         # Undo whatever this request half-did, so the session is usable again.
