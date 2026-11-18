@@ -60,7 +60,7 @@ The MVP is seven user stories plus two rules that apply everywhere: role-based a
 
 - Docker Compose (app + MySQL), so `docker compose up` runs everything
 - README as the landing page: one-line pitch, CI badge, Swagger screenshot, ERD, API table, design trade-offs, and a section on capacity-safe enrollment (problem, approach, proof)
-- Coverage badge with an 80% target (assumed), ruff pre-commit, and type hints
+- Coverage badge with an 80% gate, ruff pre-commit, and type hints
 - Optional: live deploy with demo logins (check current free hosting options before choosing one)
 
 ## Out of scope
@@ -96,18 +96,18 @@ The MVP is designed so each of these can be added later without reworking the co
 - Frontend client
 
 ## Decisions so far
-Most decisions are confirmed; the tech stack and the production extras are still assumptions and may change.
+Every decision below is built and covered by tests.
 
 | Area | Decision | Status |
 |---|---|---|
-| Stack | Flask, SQLAlchemy (ORM), MySQL, pytest | Assumed |
+| Stack | Flask, SQLAlchemy (ORM), MySQL, pytest | Confirmed |
 | Code structure | MVC-style: routes (controller), services (business rules), models (data). No View layer, since the API returns JSON | Confirmed |
 | Auth | PyJWT, access token only, 1-hour expiry, `token_required` and `role_required` decorators | Confirmed |
 | Admin creation | CLI command, never via registration | Confirmed |
 | Capacity | Seat limit per course in the MVP; waitlist excluded | Confirmed |
 | Test database | MySQL for all tests (separate `skillboost_test` locally, service container in CI), because row locking differs on SQLite | Confirmed |
 | Process | Agile-lite: GitHub Issues and Projects, one branch and PR per issue, 1-week sprints that end when their stories are Done | Confirmed |
-| Production extras | bcrypt hashing, login rate limit, structured logging, audit log, Docker Compose, 80% coverage target, ruff pre-commit | Assumed |
+| Production extras | bcrypt hashing, login rate limit, structured logging, audit log, Docker Compose, 80% coverage target, ruff pre-commit | Confirmed |
 
 ## Success criteria
 The project is done when a stranger can clone it, run it, and verify every claim in this doc.
@@ -118,7 +118,7 @@ The project is done when a stranger can clone it, run it, and verify every claim
 - The course list supports pagination, filtering, and sorting; errors share one JSON format; passwords are hashed with bcrypt and login is rate-limited
 - A seed script loads sample courses and users
 - API docs (Swagger/OpenAPI) are reachable
-- Coverage is at or above 80% (assumed target), with a coverage badge and ruff pre-commit
+- Coverage is at or above 80%, with a coverage badge and ruff pre-commit
 - README has a CI badge, Swagger screenshot, ERD, API table, design trade-offs, a capacity-enrollment section (problem, approach, proof), and a Future work section
 - The GitHub board, issues, PRs, and sprint retros show the Agile trail
 - Optional: live deploy with demo logins
