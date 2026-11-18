@@ -1,0 +1,12 @@
+# Lint settings for `ruff check` (CI, pre-commit, and your editor all read this file).
+target-version = "py312"
+line-length = 120
+
+[lint]
+# On top of ruff's default rules: every function in app/ must have type hints (T4-8).
+extend-select = ["ANN"]
+
+[lint.per-file-ignores]
+# Tests and generated migration files are exempt from the type-hint rule.
+"tests/**" = ["ANN"]
+"migrations/**" = ["ANN"]

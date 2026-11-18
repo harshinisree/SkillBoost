@@ -3,14 +3,16 @@
 Each entry uses the same query function as the real code, so the report always
 describes exactly what the app sends to MySQL.
 """
-from sqlalchemy import text
+from typing import Any
+
+from sqlalchemy import Select, text
 
 from .extensions import db
 from .models import Enrollment, User
 from .services import course_service, enrollment_service, user_service
 
 
-def _sample_values():
+def _sample_values() -> tuple[str, int, int]:
     """A real email and a real enrollment from the database, so every plan is realistic.
 
     With values that match nothing, MySQL reports "Impossible WHERE" and shows no plan.
@@ -21,7 +23,7 @@ def _sample_values():
     return email, student_id, course_id
 
 
-def key_queries():
+def key_queries() -> list[tuple[str, Select]]:
     """(name, statement) pairs, filled with values taken from the database."""
     email, student_id, course_id = _sample_values()
     return [
@@ -34,13 +36,13 @@ def key_queries():
     ]
 
 
-def explain(statement):
+def explain(statement: Select) -> list[dict[str, Any]]:
     """Run EXPLAIN on a statement and return MySQL's plan, one dict per table."""
     sql = str(statement.compile(dialect=db.engine.dialect, compile_kwargs={"literal_binds": True}))
     return [dict(row) for row in db.session.execute(text("EXPLAIN " + sql)).mappings()]
 
 
-def markdown_report():
+def markdown_report() -> str:
     """The plans as a Markdown table, ready to paste into the README."""
     lines = [
         "| Query | Table | Access type | Index used | Rows examined | Extra |",

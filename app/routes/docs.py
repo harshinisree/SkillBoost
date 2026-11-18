@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from flask.typing import ResponseReturnValue
 
 from ..openapi import build_spec
 
@@ -23,10 +24,10 @@ DOCS_PAGE = f"""<!doctype html>
 
 
 @bp.get("/openapi.json")
-def openapi_json():
+def openapi_json() -> ResponseReturnValue:
     return jsonify(build_spec())
 
 
 @bp.get("/docs")
-def docs_page():
+def docs_page() -> ResponseReturnValue:
     return DOCS_PAGE, 200, {"Content-Type": "text/html; charset=utf-8"}

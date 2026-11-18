@@ -17,7 +17,7 @@ BCRYPT_MAX_BYTES = 72
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 
 
-def validate_body(schema, payload):
+def validate_body[Model: BaseModel](schema: type[Model], payload: object) -> Model:
     """Validate a JSON body against a schema, or raise a 400 naming the bad fields."""
     if not isinstance(payload, dict):
         raise AppError("VALIDATION_ERROR", "Request body must be a JSON object.", 400)
@@ -38,12 +38,12 @@ class AccountSchema(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def lowercase_email(cls, value):
+    def lowercase_email(cls, value: str) -> str:
         return value.lower()
 
     @field_validator("password")
     @classmethod
-    def password_fits_bcrypt(cls, value):
+    def password_fits_bcrypt(cls, value: str) -> str:
         if len(value.encode("utf-8")) > BCRYPT_MAX_BYTES:
             raise ValueError("password must be at most 72 bytes")
         return value

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from flask import Flask
 
@@ -9,7 +10,7 @@ from .extensions import cors, db, limiter, migrate
 from .logging_setup import configure_logging
 
 
-def create_app(config_overrides=None):
+def create_app(config_overrides: dict[str, Any] | None = None) -> Flask:
     """Build and configure the Flask app. Tests pass config_overrides."""
     app = Flask(__name__)
     app.config.from_object(Config)

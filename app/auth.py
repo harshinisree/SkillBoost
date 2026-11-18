@@ -12,8 +12,10 @@ Routes use them like this:
 
 The logged-in user is available as flask.g.current_user inside the view.
 """
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from functools import wraps
+from typing import Any
 
 import jwt
 from flask import current_app, g, request
@@ -25,14 +27,14 @@ from .models import User
 ALGORITHM = "HS256"
 
 
-def _secret():
+def _secret() -> str:
     secret = current_app.config.get("JWT_SECRET")
     if not secret:
         raise RuntimeError("JWT_SECRET is not set. Add it to your .env file.")
     return secret
 
 
-def create_access_token(user, expires_in=None):
+def create_access_token(user: User, expires_in: int | None = None) -> str:
     """Sign a token carrying the user's id, role, and expiry time."""
     lifetime = expires_in if expires_in is not None else current_app.config["JWT_EXPIRES_SECONDS"]
     now = datetime.now(UTC)
@@ -45,7 +47,7 @@ def create_access_token(user, expires_in=None):
     return jwt.encode(claims, _secret(), algorithm=ALGORITHM)
 
 
-def decode_access_token(token):
+def decode_access_token(token: str) -> dict[str, Any]:
     """Return the token's claims, or raise AppError(UNAUTHORIZED, 401)."""
     try:
         return jwt.decode(token, _secret(), algorithms=[ALGORITHM])
@@ -55,15 +57,15 @@ def decode_access_token(token):
         raise AppError("UNAUTHORIZED", "Invalid token.", 401)
 
 
-def _load_user(user_id):
+def _load_user(user_id: int) -> User | None:
     return db.session.get(User, user_id)
 
 
-def token_required(view):
+def token_required[**P, R](view: Callable[P, R]) -> Callable[P, R]:
     """Allow the request only with a valid 'Authorization: Bearer <token>' header."""
 
     @wraps(view)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         scheme, _, token = request.headers.get("Authorization", "").partition(" ")
         token = token.strip()
         if scheme != "Bearer" or not token:
@@ -84,13 +86,13 @@ def token_required(view):
     return wrapper
 
 
-def role_required(*roles):
+def role_required[**P, R](*roles: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Allow the request only for a logged-in user whose role is in roles."""
 
-    def decorator(view):
+    def decorator(view: Callable[P, R]) -> Callable[P, R]:
         @wraps(view)
         @token_required
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             if g.current_user.role not in roles:
                 raise AppError("FORBIDDEN", "You do not have permission to do this.", 403)
             return view(*args, **kwargs)

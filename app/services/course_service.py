@@ -1,9 +1,11 @@
-from sqlalchemy import func
+from collections.abc import Sequence
+
+from sqlalchemy import Select, func
 from sqlalchemy.exc import IntegrityError
 
 from ..errors import AppError
 from ..extensions import db
-from ..models import Course, Enrollment
+from ..models import Course, Enrollment, User
 
 MAX_PER_PAGE = 100
 
@@ -17,7 +19,7 @@ SORTS = {
 }
 
 
-def list_query(q="", sort="-created_at"):
+def list_query(q: str = "", sort: str = "-created_at") -> Select:
     """The course-list query before paging. Also used by the EXPLAIN report."""
     query = db.select(Course)
     if q:
@@ -26,7 +28,9 @@ def list_query(q="", sort="-created_at"):
     return query.order_by(*SORTS[sort])
 
 
-def list_courses(page=1, per_page=20, q="", sort="-created_at"):
+def list_courses(
+    page: int = 1, per_page: int = 20, q: str = "", sort: str = "-created_at"
+) -> tuple[Sequence[Course], int, int, int]:
     """One page of courses, optionally filtered by title (US5).
 
     Returns (items, total, page, per_page). per_page is capped at MAX_PER_PAGE.
@@ -42,7 +46,7 @@ def list_courses(page=1, per_page=20, q="", sort="-created_at"):
     return items, total, page, per_page
 
 
-def create(staff, title, description, capacity):
+def create(staff: User, title: str, description: str, capacity: int) -> Course:
     """Create a course owned by the given staff user (US4)."""
     course = Course(title=title, description=description, capacity=capacity, staff_id=staff.id)
     db.session.add(course)
@@ -50,7 +54,7 @@ def create(staff, title, description, capacity):
     return course
 
 
-def update(staff, course_id, title, description, capacity):
+def update(staff: User, course_id: int, title: str, description: str, capacity: int) -> Course:
     """Replace a course's details. Only its owner may do this."""
     course = _owned_course(staff, course_id)
     course.title = title
@@ -60,7 +64,7 @@ def update(staff, course_id, title, description, capacity):
     return course
 
 
-def delete(staff, course_id):
+def delete(staff: User, course_id: int) -> None:
     """Delete a course. Only its owner may do this, and only while nobody is enrolled."""
     course = _owned_course(staff, course_id)
     has_students = db.session.execute(
@@ -77,7 +81,7 @@ def delete(staff, course_id):
         raise _has_enrollments()
 
 
-def _has_enrollments():
+def _has_enrollments() -> AppError:
     return AppError(
         "COURSE_HAS_ENROLLMENTS",
         "This course has enrolled students and cannot be deleted.",
@@ -85,7 +89,7 @@ def _has_enrollments():
     )
 
 
-def _owned_course(staff, course_id):
+def _owned_course(staff: User, course_id: int) -> Course:
     """Return the course, or raise 404 if it does not exist and 403 if it is not yours."""
     course = db.session.get(Course, course_id)
     if course is None:

@@ -1,4 +1,5 @@
 import click
+from flask import Flask
 from pydantic import ValidationError
 
 from .errors import AppError
@@ -6,9 +7,9 @@ from .schemas import AccountSchema
 from .services import user_service
 
 
-def register_cli(app):
+def register_cli(app: Flask) -> None:
     @app.cli.command("seed")
-    def seed():
+    def seed() -> None:
         """Load demo users, courses, and enrollments. Safe to run more than once."""
         from .seed import DEMO_PASSWORD, demo_logins, run_seed
 
@@ -22,7 +23,7 @@ def register_cli(app):
             click.echo(f"  {role:<26} {email}")
 
     @app.cli.command("explain-queries")
-    def explain_queries():
+    def explain_queries() -> None:
         """Print MySQL's EXPLAIN plan for the key queries, as a Markdown table."""
         from .query_report import markdown_report
 
@@ -32,7 +33,7 @@ def register_cli(app):
     @click.option("--name", prompt="Name", help="Full name of the admin.")
     @click.option("--email", prompt="Email", help="Email address used to log in.")
     @click.password_option(help="Password (asked twice, never shown on screen).")
-    def create_admin(name, email, password):
+    def create_admin(name: str, email: str, password: str) -> None:
         """Create an approved admin account. Admins cannot be created through the API."""
         try:
             data = AccountSchema.model_validate(

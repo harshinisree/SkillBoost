@@ -4,6 +4,10 @@ Request bodies and query parameters are generated from the same Pydantic
 schemas the routes validate with, so they cannot drift. A test checks that
 every route in the app appears here, and nothing else.
 """
+from typing import Any
+
+from pydantic import BaseModel
+
 from .schemas import (
     CourseListQuery,
     CourseSchema,
@@ -12,7 +16,7 @@ from .schemas import (
     RegisterSchema,
 )
 
-REQUEST_SCHEMAS = {
+REQUEST_SCHEMAS: dict[str, type[BaseModel]] = {
     "RegisterBody": RegisterSchema,
     "LoginBody": LoginSchema,
     "CourseBody": CourseSchema,
@@ -20,7 +24,7 @@ REQUEST_SCHEMAS = {
 }
 
 _TIME = {"type": ["string", "null"], "format": "date-time"}
-RESPONSE_SCHEMAS = {
+RESPONSE_SCHEMAS: dict[str, dict[str, Any]] = {
     "Error": {
         "type": "object",
         "required": ["error"],
@@ -111,7 +115,9 @@ ERROR_TEXT = {
 
 # method, path, tag, summary, role (None = public), request body, success code,
 # success schema, error codes, and specific 409 meaning where it applies.
-OPERATIONS = [
+Operation = tuple[str, str, str, str, str | None, str | None, int, str | None, list[int], str | None]
+
+OPERATIONS: list[Operation] = [
     ("get", "/health", "System", "Health check", None, None, 200, "Health", [], None),
     ("post", "/auth/register", "Auth", "Register; the account starts pending", None, "RegisterBody", 201, "User", [400, 409], "EMAIL_TAKEN"),
     ("post", "/auth/login", "Auth", "Log in and get a 1-hour token", None, "LoginBody", 200, "Token", [400, 401, 403, 429], None),
@@ -127,11 +133,11 @@ OPERATIONS = [
 ]
 
 
-def _ref(name):
+def _ref(name: str) -> dict[str, str]:
     return {"$ref": f"#/components/schemas/{name}"}
 
 
-def _course_list_parameters():
+def _course_list_parameters() -> list[dict[str, Any]]:
     schema = CourseListQuery.model_json_schema()
     return [
         {"name": name, "in": "query", "required": False, "schema": prop}
@@ -139,12 +145,23 @@ def _course_list_parameters():
     ]
 
 
-def _operation(method, path, tag, summary, role, body, status, success, errors, conflict):
-    operation = {"tags": [tag], "summary": summary, "responses": {}}
+def _operation(
+    method: str,
+    path: str,
+    tag: str,
+    summary: str,
+    role: str | None,
+    body: str | None,
+    status: int,
+    success: str | None,
+    errors: list[int],
+    conflict: str | None,
+) -> dict[str, Any]:
+    operation: dict[str, Any] = {"tags": [tag], "summary": summary, "responses": {}}
     if role is not None:
         operation["security"] = [{"bearerAuth": []}]
         operation["description"] = f"Requires a token. Allowed: {role}."
-    parameters = [
+    parameters: list[dict[str, Any]] = [
         {"name": part[1:-1], "in": "path", "required": True, "schema": {"type": "integer"}}
         for part in path.split("/")
         if part.startswith("{")
@@ -156,7 +173,7 @@ def _operation(method, path, tag, summary, role, body, status, success, errors, 
     if body is not None:
         operation["requestBody"] = {"required": True, "content": {"application/json": {"schema": _ref(body)}}}
 
-    ok = {"description": "Success"}
+    ok: dict[str, Any] = {"description": "Success"}
     if success is not None:
         ok["content"] = {"application/json": {"schema": _ref(success)}}
     operation["responses"][str(status)] = ok
@@ -169,13 +186,14 @@ def _operation(method, path, tag, summary, role, body, status, success, errors, 
     return operation
 
 
-def build_spec():
-    components = dict(RESPONSE_SCHEMAS)
+def build_spec() -> dict[str, Any]:
+    components: dict[str, Any] = dict(RESPONSE_SCHEMAS)
     for name, model in REQUEST_SCHEMAS.items():
         components[name] = model.model_json_schema()
-    paths = {}
-    for method, path, *rest in OPERATIONS:
-        paths.setdefault(path, {})[method] = _operation(method, path, *rest)
+    paths: dict[str, dict[str, Any]] = {}
+    for operation in OPERATIONS:
+        method, path = operation[0], operation[1]
+        paths.setdefault(path, {})[method] = _operation(*operation)
     return {
         "openapi": "3.1.0",
         "info": {

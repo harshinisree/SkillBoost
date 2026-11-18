@@ -1,12 +1,14 @@
-from sqlalchemy import func
+from typing import Any, NoReturn
+
+from sqlalchemy import Select, func
 from sqlalchemy.exc import IntegrityError
 
 from ..errors import AppError
 from ..extensions import db
-from ..models import Course, Enrollment
+from ..models import Course, Enrollment, User
 
 
-def enroll(student, course_id):
+def enroll(student: User, course_id: int) -> Enrollment:
     """Enroll a student, never past the course's capacity (US6, US6b).
 
     The course row is locked (SELECT ... FOR UPDATE) before anything is checked,
@@ -43,13 +45,13 @@ def enroll(student, course_id):
     return enrollment
 
 
-def _fail(error):
+def _fail(error: AppError) -> NoReturn:
     """End the transaction (releasing the lock) and raise the error."""
     db.session.rollback()
     raise error
 
 
-def list_for_student(student):
+def list_for_student(student: User) -> list[dict[str, Any]]:
     """The student's own enrollments with course titles, newest first (US7).
 
     One joined query, however many enrollments there are.
@@ -65,7 +67,7 @@ def list_for_student(student):
     ]
 
 
-def drop(student, course_id):
+def drop(student: User, course_id: int) -> None:
     """Remove the student's own enrollment. 404 if they are not enrolled."""
     enrollment = _find(student, course_id)
     if enrollment is None:
@@ -74,17 +76,17 @@ def drop(student, course_id):
     db.session.commit()
 
 
-def seat_count_query(course_id):
+def seat_count_query(course_id: int) -> Select:
     """How many seats a course has taken. Also used by the EXPLAIN report."""
     return db.select(func.count()).select_from(Enrollment).filter_by(course_id=course_id)
 
 
-def enrollment_query(student_id, course_id):
+def enrollment_query(student_id: int, course_id: int) -> Select:
     """One student's enrollment in one course. Also used by the EXPLAIN report."""
     return db.select(Enrollment).filter_by(student_id=student_id, course_id=course_id)
 
 
-def my_enrollments_query(student_id):
+def my_enrollments_query(student_id: int) -> Select:
     """A student's enrollments with course titles. Also used by the EXPLAIN report."""
     return (
         db.select(Enrollment.course_id, Course.title, Enrollment.enrolled_at)
@@ -94,12 +96,12 @@ def my_enrollments_query(student_id):
     )
 
 
-def _find(student, course_id, lock=False):
+def _find(student: User, course_id: int, lock: bool = False) -> Enrollment | None:
     query = enrollment_query(student.id, course_id)
     if lock:
         query = query.with_for_update()
     return db.session.execute(query).scalar_one_or_none()
 
 
-def _already_enrolled():
+def _already_enrolled() -> AppError:
     return AppError("ALREADY_ENROLLED", "You are already enrolled in this course.", 409)
